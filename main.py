@@ -12,21 +12,6 @@ def login(id, passwd):
         }
 
         headers = {
-            'Host': 'sso.buaa.edu.cn',
-            'Upgrade-Insecure-Requests': '1',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.6533.100 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-            'Sec-Fetch-Site': 'same-site',
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-User': '?1',
-            'Sec-Fetch-Dest': 'document',
-            'Sec-Ch-Ua': '"Chromium";v="127", "Not)A;Brand";v="99"',
-            'Sec-Ch-Ua-Mobile': '?0',
-            'Sec-Ch-Ua-Platform': '"macOS"',
-            'Accept-Language': 'zh-CN',
-            'Referer': 'https://byxt.buaa.edu.cn/',
-            'Priority': 'u=0, i',
-            'Connection': 'keep-alive',
         }
 
         params = {
@@ -45,24 +30,6 @@ def login(id, passwd):
         }
 
         headers = {
-            'Host': 'sso.buaa.edu.cn',
-            'Cache-Control': 'max-age=0',
-            'Sec-Ch-Ua': '"Chromium";v="127", "Not)A;Brand";v="99"',
-            'Sec-Ch-Ua-Mobile': '?0',
-            'Sec-Ch-Ua-Platform': '"macOS"',
-            'Accept-Language': 'zh-CN',
-            'Upgrade-Insecure-Requests': '1',
-            'Origin': 'https://sso.buaa.edu.cn',
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.6533.100 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-            'Sec-Fetch-Site': 'same-origin',
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-User': '?1',
-            'Sec-Fetch-Dest': 'document',
-            'Referer': 'https://sso.buaa.edu.cn/login?service=https%3A%2F%2Fbyxt.buaa.edu.cn%2Fjwapp%2Fsys%2Fhomeapp%2Findex.do',
-            'Priority': 'u=0, i',
-            'Connection': 'keep-alive',
         }
 
         data = {
@@ -83,23 +50,6 @@ def login(id, passwd):
 
     def get_gs_sessionid(location):
         headers = {
-            'Host': 'byxt.buaa.edu.cn',
-            'Cache-Control': 'max-age=0',
-            'Upgrade-Insecure-Requests': '1',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.6533.100 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-            'Sec-Fetch-Site': 'same-site',
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-User': '?1',
-            'Sec-Fetch-Dest': 'document',
-            'Sec-Ch-Ua': '"Chromium";v="127", "Not)A;Brand";v="99"',
-            'Sec-Ch-Ua-Mobile': '?0',
-            'Sec-Ch-Ua-Platform': '"macOS"',
-            'Accept-Language': 'zh-CN',
-            'Referer': 'https://sso.buaa.edu.cn/',
-            # 'Accept-Encoding': 'gzip, deflate, br',
-            'Priority': 'u=0, i',
-            'Connection': 'keep-alive',
         }
 
         params = {
@@ -118,22 +68,6 @@ def login(id, passwd):
         }
 
         headers = {
-            'Host': 'byxt.buaa.edu.cn',
-            'Cache-Control': 'max-age=0',
-            'Upgrade-Insecure-Requests': '1',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.6533.100 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-            'Sec-Fetch-Site': 'same-site',
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-User': '?1',
-            'Sec-Fetch-Dest': 'document',
-            'Sec-Ch-Ua': '"Chromium";v="127", "Not)A;Brand";v="99"',
-            'Sec-Ch-Ua-Mobile': '?0',
-            'Sec-Ch-Ua-Platform': '"macOS"',
-            'Accept-Language': 'zh-CN',
-            'Referer': 'https://sso.buaa.edu.cn/',
-            'Priority': 'u=0, i',
-            'Connection': 'keep-alive',
         }
 
         response = requests.get('https://byxt.buaa.edu.cn/jwapp/sys/homeapp/index.do', cookies=cookies, headers=headers, verify=False, allow_redirects=False)
@@ -153,23 +87,6 @@ def get_schedule(gs_sessionid, _WEU, term):
         }
 
     headers = {
-        'Host': 'byxt.buaa.edu.cn',
-        'Cache-Control': 'max-age=0',
-        'Sec-Ch-Ua': '"Chromium";v="127", "Not)A;Brand";v="99"',
-        'Accept-Language': 'zh-CN',
-        'Sec-Ch-Ua-Mobile': '?0',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.6533.100 Safari/537.36',
-        'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
-        'Accept': 'application/json',
-        'Fetch-Api': 'true',
-        'Sec-Ch-Ua-Platform': '"macOS"',
-        'Origin': 'https://byxt.buaa.edu.cn',
-        'Sec-Fetch-Site': 'same-origin',
-        'Sec-Fetch-Mode': 'cors',
-        'Sec-Fetch-Dest': 'empty',
-        'Referer': 'https://byxt.buaa.edu.cn/jwapp/sys/homeapp/home/index.html?av=1725888244394&contextPath=/jwapp',
-        'Priority': 'u=1, i',
-        'Connection': 'keep-alive',
     }
 
     data = {
