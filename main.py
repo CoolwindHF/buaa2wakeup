@@ -4,6 +4,55 @@ from requests.packages import urllib3
 
 urllib3.disable_warnings()
 
+def getpass_echo(prompt='Password: ', stream=None, placeholder='*'):
+    """Prompt for password with echo on, using Windows getwch()."""
+    
+    try:
+        import msvcrt
+        import sys
+        if sys.stdin is not sys.__stdin__:
+            raise Exception("stdin is wrong.")
+    except Exception as e:
+        print("回退到默认方法... ")
+        import getpass
+        return getpass.getpass(prompt, stream)
+    
+    def repaint(old_len = 0, len = 0):
+        msvcrt.putwch('\r')
+        for c in prompt:
+            msvcrt.putwch(c)
+        for i in range(len):
+            msvcrt.putwch(placeholder)
+        for i in range(len, old_len):
+            msvcrt.putwch(' ')
+        if len < old_len:
+            repaint(len, len)
+    
+    pw = ""
+    repaint()
+    while 1:
+        c = msvcrt.getwch()
+        if c == '\r' or c == '\n':
+            break
+        if c == '\003':
+            raise KeyboardInterrupt
+        if c == '\b':
+            l = len(pw)
+            pw = pw[:-1]
+            repaint(l, len(pw))
+        elif c == '\xe0':
+            # Special code... 
+            msvcrt.putwch('\a')
+            msvcrt.getwch() # Skip it.
+        else:
+            pw = pw + c
+            msvcrt.putwch(placeholder)
+            
+    msvcrt.putwch('\r')
+    msvcrt.putwch('\n')
+    return pw
+
+
 def login(id, passwd):
     
     def get_execution():
@@ -193,9 +242,7 @@ def get_schedule(gs_sessionid, _WEU, term):
 import csv
 import re
 def convert_schedule_to_csv(schedule_list):
-    with open("schedule.csv", "w") as f:
-        writer = csv.writer(f)
-        writer.writerow(["课程名称", "星期", "开始节数", "结束节数", "老师", "地点", "周数"])
+    
     list_for_csv = []
 
     for each_class in schedule_list:
@@ -230,18 +277,31 @@ def convert_schedule_to_csv(schedule_list):
             append_list.append(place)
             append_list.append(week_all)
             list_for_csv.append(append_list)
-    
-    with open("schedule.csv", "a") as f:
+    with open("schedule.csv", "w") as f:
         writer = csv.writer(f)
+        writer.writerow(["课程名称", "星期", "开始节数", "结束节数", "老师", "地点", "周数"])
         writer.writerows(list_for_csv)
+    import sys
+    writer = csv.writer(sys.stdout,delimiter="\t")
+    writer.writerow(["课程名称", "星期", "开始节数", "结束节数", "老师", "地点", "周数"])
+    writer.writerows(list_for_csv)
 
 if __name__ == "__main__":
     id = input("请输入统一认证学号：").strip()
-    passwd = input("请输入统一认证密码：").strip()
-    gs_session, _WEU = login(id, passwd)
+    passwd = getpass_echo("请输入统一认证密码：")
+    try:
+        gs_session, _WEU = login(id, passwd)
+    except:
+        print("登录失败... 学号/密码错误？")
+        import time; time.sleep(0.5)
+        raise
+        
     print("账号{}登陆成功！".format(id))
     year = input("请输入学年，如“2024-2025-1”代表2024-2025学年第一学期：").strip()
     schedule_list = get_schedule(gs_session, _WEU, year)
-    convert_schedule_to_csv(schedule_list)
-    print("课程表已保存为schedule.csv文件！请发送到手机后倒入wakeup课程表！")
+    if len(schedule_list) == 0:
+        print("没有课程？学年输入错误？")
+    else: 
+        convert_schedule_to_csv(schedule_list)
+        print("课程表已保存为schedule.csv文件！请发送到手机后倒入wakeup课程表！")
    
