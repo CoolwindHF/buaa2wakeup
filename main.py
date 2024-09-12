@@ -327,6 +327,7 @@ def convert_schedule_to_icaleander(list_for_csv):
                 else:
                     f.write(f"RRULE:FREQ=WEEKLY;INTERVAL=2;UNTIL={end_day}\n")
                 f.write("END:VEVENT\n")
+        f.write("END:VCALENDAR\n")
 
 if __name__ == "__main__":
     id = input("请输入统一认证学号：").strip()
