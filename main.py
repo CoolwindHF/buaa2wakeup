@@ -79,7 +79,7 @@ def login(id, passwd):
         match = re.search(pattern, response.headers.get("Set-Cookie").strip())
         if match:
             gs_sessionid = match.group(1)
-            print(gs_sessionid)
+            # print(gs_sessionid)
             return gs_sessionid
         else:
             print("GS_SESSIONID not found!")
@@ -106,10 +106,6 @@ def login(id, passwd):
     location = get_location(id, passwd, execution)
     gs_sessionid = get_gs_sessionid(location)
     _WEU = get_WEU(gs_sessionid)
-    # print("execution: ", execution)
-    # print("location: ", location)
-    # print("gs_sessionid: ", gs_sessionid)
-    # print("_WEU: ", _WEU)
     return gs_sessionid, _WEU
 
 
@@ -290,7 +286,8 @@ def convert_schedule_to_icaleander(list_for_csv):
 
 if __name__ == "__main__":
     id = input("请输入统一认证学号：").strip()
-    passwd = input("请输入统一认证密码：").strip()
+    import getpass
+    passwd = getpass.getpass("请输入统一认证密码：").strip()
     gs_session, _WEU = login(id, passwd)
     print("账号{}登陆成功！".format(id))
     year = input("请输入学年，如“2024-2025-1”代表2024-2025学年第一学期：").strip()
