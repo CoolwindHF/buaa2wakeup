@@ -1,4 +1,6 @@
 username: 1114514
 password: 1919810
+# 学生类型: undergraduate 为本科生教务系统 (byxt)，graduate 为研究生系统 (gsmis)
+type: undergraduate
 term: 2025-2026-1
 first_day_of_term: 2025-09-08

@@ -92,7 +92,7 @@ class login:
 
         final_url = response.url
         logging.info(f"Final URL after redirection: {final_url}")
-        if final_url == self.JWAPP:
+        if final_url.startswith(self.JWAPP):
             logging.info("Successfully logged into the academic system.")
             return True
 
@@ -141,6 +141,179 @@ class login:
             return False
 
         return arranged_list
+
+class graduate_login(login):
+    """研究生教育综合管理信息系统 (GSMIS) 的登录与课表获取。
+
+    复用本科生 login 类的 SSO 登录流程，仅切换目标系统；
+    课表数据来自 loadXskbData.do 接口，其 jgList 为"每节课次"粒度的安排，
+    需转换为与本科生系统 arrangedList 兼容的格式，以复用 convert 类。
+    """
+    # 覆盖 login 类的登录目标，SSO 的 service 参数与登录后校验均使用 JWAPP
+    JWAPP = 'https://gsmis.buaa.edu.cn/gsapp/sys/wdkbapp/*default/index.do'
+    TERM_LIST_URL = 'https://gsmis.buaa.edu.cn/gsapp/sys/wdkbapp/modules/xskcb/kfdxnxqcx.do'
+    SCHEDULE_URL = 'https://gsmis.buaa.edu.cn/gsapp/sys/wdkbapp/bykb/loadXskbData.do'
+
+    def __init__(self, username: str = '', password: str = '', term: str = ''):
+        # login 类的 __init__ 会校验账号密码与学期，并按 DEBUG 级别配置代理
+        super().__init__(username, password, term)
+
+    def get_term_code(self):
+        """将 config 中的学期 (如 2026-2027-1) 转换为 GSMIS 的学期代码 (如 20261)。"""
+        parts = self.term.split('-')
+        if len(parts) != 3 or not all(parts):
+            logging.error(f"无法解析学期 '{self.term}'，研究生学期格式应为 'YYYY-YYYY-S'，如 '2026-2027-1'。")
+            return None
+        return f"{parts[0]}{parts[2]}"
+
+    def check_term(self, term_code):
+        """查询可选学期列表，校验学期代码是否有效。"""
+        response = self.session.post(self.TERM_LIST_URL,
+            headers={'X-Requested-With': 'XMLHttpRequest'})
+        try:
+            rows = response.json()['datas']['kfdxnxqcx']['rows']
+        except (ValueError, KeyError):
+            logging.warning("Failed to fetch term list, skip term validation.")
+            return True
+
+        valid_codes = [row.get('XNXQDM') for row in rows]
+        if term_code not in valid_codes:
+            valid_terms = [row.get('XNXQDM_DISPLAY', code) for row, code in zip(rows, valid_codes)]
+            logging.error(f"学期 '{self.term}' 不在可选范围内，可选学期: {', '.join(valid_terms)}")
+            return False
+        return True
+
+    def get_schedule(self):
+        logging.info("Fetching graduate schedule...")
+        term_code = self.get_term_code()
+        if not term_code:
+            return None
+
+        if not self.check_term(term_code):
+            return None
+
+        response = self.session.post(
+            self.SCHEDULE_URL,
+            data={
+                'ZC': '',
+                'XNXQDM': term_code,
+                'XH': '',
+                'XQDM': '',
+            },
+            headers={'X-Requested-With': 'XMLHttpRequest'}
+        )
+
+        try:
+            return_json = response.json()
+        except ValueError:
+            logging.error("Failed to parse schedule response as JSON.")
+            return None
+
+        if return_json.get('code') != 1:
+            logging.error(f"Schedule API returned error code: {return_json.get('code')}")
+            return None
+
+        logging.info("Schedule fetched successfully.")
+        return return_json
+
+    @staticmethod
+    def weeks_str_from_zcbh(zcbh):
+        """将周次位图 (如 '011111111111111110000000000000') 转换为区间字符串 (如 '2-17')。
+
+        位图第 i 位为 '1' 表示第 i 周有课，比解析周次文字 (ZCMC) 更可靠；
+        等差为 2 的周次序列会输出 '1-17单'/'2-18双' 格式，与本科生课表兼容。
+        """
+        weeks = [i + 1 for i, bit in enumerate(zcbh) if bit == '1']
+        parts = []
+        i = 0
+        while i < len(weeks):
+            # 先尝试扩展公差为 1 的连续段
+            j = i
+            while j + 1 < len(weeks) and weeks[j + 1] == weeks[j] + 1:
+                j += 1
+            if j > i:
+                parts.append(f"{weeks[i]}-{weeks[j]}")
+                i = j + 1
+                continue
+            # 单周起点，尝试扩展公差为 2 的单/双周段
+            if i + 1 < len(weeks) and weeks[i + 1] == weeks[i] + 2:
+                j = i + 1
+                while j + 1 < len(weeks) and weeks[j + 1] == weeks[j] + 2:
+                    j += 1
+                tag = '单' if weeks[i] % 2 == 1 else '双'
+                parts.append(f"{weeks[i]}-{weeks[j]}{tag}")
+                i = j + 1
+            else:
+                parts.append(str(weeks[i]))
+                i += 1
+        return ','.join(parts)
+
+    def convert_to_arranged_list(self, schedule_json):
+        """将 GSMIS 的 jgList (每节课次一条记录) 转换为本科生 arrangedList 兼容格式。
+
+        同一门课在同一星期、同一周次位图、同一教室的相邻节次会被合并，
+        同组的教师名单按姓名排序以保证稳定输出。
+        """
+        jg_list = schedule_json.get('jgList', [])
+        if not jg_list:
+            logging.error("No schedule data (jgList) found.")
+            return None
+
+        groups = {}
+        for cell in jg_list:
+            teachers = tuple(sorted(t for t in cell.get('JGJSXM', '').split(',') if t))
+            key = (cell.get('KCDM'), cell.get('KCMC'), cell.get('XQ'),
+                   cell.get('ZCBH'), cell.get('JASMC'), teachers)
+            groups.setdefault(key, []).append(cell.get('KSJCDM'))
+
+        arranged_list = []
+        for (course_code, course_name, day, zcbh, place, teachers), sections in groups.items():
+            teachers_str = ','.join(teachers) or "教师待定"
+            weeks_str = self.weeks_str_from_zcbh(zcbh or '')
+
+            # 节次排序后合并连续段，不连续的段各自生成条目
+            sections = sorted(sections)
+            segments = []
+            seg_start = seg_end = sections[0]
+            for sec in sections[1:]:
+                if sec == seg_end + 1:
+                    seg_end = sec
+                else:
+                    segments.append((seg_start, seg_end))
+                    seg_start = seg_end = sec
+            segments.append((seg_start, seg_end))
+
+            for begin, end in segments:
+                arranged_list.append({
+                    "courseName": course_name,
+                    "credit": "N/A",
+                    "courseCode": course_code,
+                    "dayOfWeek": day,
+                    "beginSection": begin,
+                    "endSection": end,
+                    "placeName": place or "地点待定",
+                    "cellDetail": [{"text": f"{teachers_str}[{weeks_str}]"}],
+                })
+        return arranged_list
+
+    def run(self):
+        if not self.get_execution():
+            return None
+
+        if not self.login():
+            return None
+
+        schedule = self.get_schedule()
+        if schedule is None:
+            return None
+
+        arranged_list = self.convert_to_arranged_list(schedule)
+        if not arranged_list:
+            logging.error("No arranged list generated from graduate schedule.")
+            return None
+
+        return arranged_list
+
 
 class convert:
     def __init__(self, schedule_list=[]):
@@ -358,13 +531,19 @@ if __name__ == "__main__":
     username = config.get("username", "")
     password = config.get("password", "")
     term = config.get("term", "")
+    student_type = config.get("type", "undergraduate")
     first_day_input : date = config.get("first_day_of_term", None)
     if first_day_input:
         year, month, day = first_day_input.year, first_day_input.month, first_day_input.day
     else:
         year = month = day = None
 
-    obj = login(username, password, term)
+    if student_type == "graduate":
+        logging.info("Fetching schedule from graduate system (GSMIS).")
+        obj = graduate_login(username, password, term)
+    else:
+        logging.info("Fetching schedule from undergraduate system (JWAPP).")
+        obj = login(username, password, term)
     schedule = obj.run()
     if not schedule:
         logging.error("Failed to retrieve schedule.")
