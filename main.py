@@ -112,6 +112,7 @@ class login:
 
         try:
             return_json = response.json()
+            # print(return_json)
             logging.info("Schedule fetched successfully.")
             return return_json
         except:
@@ -182,15 +183,10 @@ class convert:
                 logging.warning(f"未能找到课程 '{class_name}' 的教师/周数信息，已跳过。")
                 continue
 
-            weeks_and_teachers = teacher_week_string.split(" ")
-            for i in weeks_and_teachers:
-                find = re.findall(r"(.*?)\[(.*?)\]", i)
-                if not find:
-                    logging.warning(f"无法解析教师周数信息: '{i}'，课程: '{class_name}'，已跳过此条目。")
-                    continue
+            teacher_week_pairs = re.findall(r"([^\[\]]+?)\[([^\]]+)\]", teacher_week_string)
 
-                teacher = find[0][0] or "教师待定"
-                weeks_raw = find[0][1]
+            for teacher_raw, weeks_raw in teacher_week_pairs:
+                teacher = teacher_raw.strip() or "教师待定"
 
                 weeks = weeks_raw.split(",")
                 week_list = []
